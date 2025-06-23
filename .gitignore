@@ -1,0 +1,48 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# === Jupyter Notebook Checkpoints ===
+.ipynb_checkpoints
+
+# === Virtual Environment ===
+venv/
+env/
+ENV/
+.venv/
+
+# === Environment Variables ===
+.env
+
+# === OS Files ===
+.DS_Store
+Thumbs.db
+
+# === VSCode and JetBrains IDEs ===
+.vscode/
+.idea/
+
+# === Streamlit Cache ===
+.streamlit/
+
+# === Machine Learning Models ===
+ml/*.pkl
+ml/*.joblib
+
+# === Logs and Debug Files ===
+*.log
+*.tmp
+*.bak
+
+# === Screenshots or user exports ===
+screenshots/
+*.csv
+movies.csv
