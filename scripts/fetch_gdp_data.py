@@ -1,31 +1,47 @@
-# scripts/fetch_gdp_data.py
+# fetch_gdp_data.py – Fixed column names + enhancements
+# Author: Bria Tran
+# Description: This script fetches the most recent GDP and population data per country
+# using the World Bank API, skips already-existing entries, caches results, and stores
+# values in a SQLite database for downstream analysis.
 
-import sqlite3, requests, time, os
+import sqlite3
+import requests
+import time
+import os
 import pycountry
+import pandas as pd
+from tqdm import tqdm  # Visual progress bar for loops
 
-# Constants
-YEAR = 2023  # Target year for GDP and population data
+# Configuration Constants
+
+# Year to fetch data for (can be changed based on availability)
+YEAR = 2023
+
+# Paths for database and cache file
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "database", "film.db")
+CACHE_CSV = "gdp_population_cache.csv"
 
-# World Bank API endpoints for GDP (in current US$) and total population
+# API endpoints (World Bank indicators)
 GDP_API = "https://api.worldbank.org/v2/country/{}/indicator/NY.GDP.MKTP.CD?format=json"
 POP_API = "https://api.worldbank.org/v2/country/{}/indicator/SP.POP.TOTL?format=json"
 
+# Helper Function: API Request
+
 def fetch_latest_value(api_url, code):
     """
-    Fetches the latest available value for a given indicator and country ISO code.
-    Filters for the specific target year (e.g., 2023) and returns None if unavailable.
+    Queries the specified World Bank API endpoint for a given ISO country code.
+    Returns the value for the configured year (e.g., 2023) if available.
     """
     try:
         resp = requests.get(api_url.format(code), timeout=10)
-        resp.raise_for_status()  # Raise an error for bad HTTP status
+        resp.raise_for_status()
         data = resp.json()
 
-        # Check if the response is well-formed and contains data
+        # Validate API response structure
         if not data or len(data) < 2 or not data[1]:
             return None
 
-        # Loop through the entries and find the value for the specific year
+        # Return first valid value from the correct year
         for entry in data[1]:
             if entry["value"] is not None and int(entry["date"]) == YEAR:
                 return float(entry["value"])
@@ -34,40 +50,60 @@ def fetch_latest_value(api_url, code):
         print(f"[ERROR] {code}: {e}")
         return None
 
+# Main Pipeline
+
 def main():
-    # Connect to the SQLite database
+    # Establish SQLite connection and initialize table if not exists
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS world_bank_data (
+            iso_code TEXT PRIMARY KEY,
+            gdp REAL,
+            population_gdp INTEGER
+        )
+    """)
+    conn.commit()
 
-    # Clear any existing data in the world_bank_data table
-    cur.execute("DELETE FROM world_bank_data")
+    # Get list of ISO codes already stored to avoid duplicate requests
+    cur.execute("SELECT iso_code FROM world_bank_data")
+    existing = {row[0] for row in cur.fetchall()}
 
-    success, fail = 0, 0  # Counters for tracking insert success/failure
+    cached = []  # In-memory cache to write out to CSV
 
-    # Loop through all countries defined by ISO using pycountry
-    for country in pycountry.countries:
-        code = country.alpha_3  # Use the ISO Alpha-3 code (e.g., "USA", "JPN")
+    # Loop through all recognized countries using pycountry
+    for country in tqdm(pycountry.countries, desc="Fetching GDP & Population"):
+        code = country.alpha_3
+        if code in existing:
+            continue  # Skip already-inserted countries
+
+        # Fetch GDP and population data (with slight delay to avoid rate limits)
         gdp = fetch_latest_value(GDP_API, code)
+        time.sleep(0.05)
         pop = fetch_latest_value(POP_API, code)
+        time.sleep(0.05)
 
-        # Only insert data if we got at least one value
+        # Only insert if at least one value was successfully fetched
         if gdp is not None or pop is not None:
             cur.execute("""
                 INSERT INTO world_bank_data (iso_code, gdp, population_gdp)
                 VALUES (?, ?, ?)
-            """, (code, gdp, pop))
-            success += 1
-        else:
-            fail += 1
+            """, (code, gdp, int(pop) if pop is not None else None))
+            conn.commit()
 
-        # Pause to avoid hitting API rate limits (very basic throttle)
-        time.sleep(0.2)
+            # Track this entry for the CSV cache
+            cached.append({"iso_code": code, "gdp": gdp, "population_gdp": pop})
 
-    # Commit changes and close DB connection
-    conn.commit()
+    # Save cached results to CSV for future debugging and re-runs
+    if cached:
+        pd.DataFrame(cached).to_csv(CACHE_CSV, index=False)
+        print(f"Cached new data to {CACHE_CSV}")
+    else:
+        print("No new countries were added.")
+
+    # Close DB connection
     conn.close()
-    print(f"Inserted {success} rows. Missed {fail}.")
 
-# Run script only if executed directly (not imported)
+# Entry Point
 if __name__ == "__main__":
     main()

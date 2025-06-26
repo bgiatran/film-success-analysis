@@ -8,3 +8,4 @@ pycountry
 requests
 certifi
 python-dotenv
+tqdm>=4.0.0
