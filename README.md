@@ -4,8 +4,6 @@ The **Film Success Analysis Dashboard** is an interactive web analytics applicat
 
 This project demonstrates full-stack data integration, exploratory data analysis, machine learning for classification, and storytelling through visualization to surface insights about global film performance.
 
-## Live Demo
-
 [Live Demo - Launch the Film Success Analysis Dashboard](https://film-success-analysis.streamlit.app/)
 
 ---
