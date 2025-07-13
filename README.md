@@ -207,12 +207,25 @@ The result is a tool that simulates how real-world studios, producers, and analy
 
 ---
 
+## Challenges
+
+Working on film success analytics revealed several tough data challenges:
+
+- **Incomplete and inconsistent metadata:** Many films had missing or conflicting information across sources.
+- **Country mismatches:** Discrepancies in film country of origin data complicated regional analysis.
+- **Limited review and sentiment data:** Review datasets were sparse and varied in format, limiting sentiment accuracy.
+- **Model simplicity due to data constraints:** The hit predictor model was constrained to a few variables due to lack of richer features.
+
+Despite these hurdles, I prioritized building a foundation for further refinement and learning more about the intersection of entertainment and data analytics.
+
+---
+
 ## Future Improvements
 
-- Expand the hit predictor with more features (genre, runtime, MPAA rating)
-- Incorporate sentiment analysis of reviews
-- Add real-time box office scraping for dynamic forecasting
-- Introduce unsupervised clustering of films by performance profile
+- Expand the hit predictor model with more features such as genre, runtime, and MPAA rating.
+- Incorporate sentiment analysis of movie reviews to add qualitative insights.
+- Add real-time box office data scraping for dynamic forecasting.
+- Introduce unsupervised clustering to profile films by performance and audience reception.
 
 ---
 
